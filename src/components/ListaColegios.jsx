@@ -1,75 +1,246 @@
-import {useEffect,useState} from "react"
+import { useEffect, useState } from "react"
+import { useForm } from 'react-hook-form';
 import axios from 'axios'
-import { getColegios,postZona, getZonas, deleteColegio } from '../../apiReact/api';
+import { getColegios,postColegio, updateColegio, deleteColegio } from '../../apiReact/api';
+import { getZonas } from '../../apiReact/api';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
+import CardStyles from './CardStyles';
 
 function ListaColegios() {
-    const [colegios, setColegios] = useState([])
-    useEffect(() => {
-        async function obtenerDatos() {
-            const res = await getColegios()
-            console.log(res.data)
-            setColegios(res.data)
-            //console.log("no jalo colegios")
+  const [show, setShow] = useState(false);
+  const [colegios, setColegios] = useState([]);
+  const [zonas, setZonas] = useState([]);
+  const { register, handleSubmit, reset } = useForm();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    async function obtenerDatos() {
+      const res = await getColegios();
+      setColegios(res.data);
+    }
+    obtenerDatos();
+  }, []);
+
+  useEffect(() => {
+    async function obtenerZona() {
+      const res2 = await getZonas();
+      setZonas(res2.data);
+    }
+    obtenerZona();
+  }, []);
+  // editar Colegio 
+  const [editingColegio, setEditingColegio] = useState(null);
+  const handleClose = () => {
+    setShow(false);
+    setEditingColegio(null);
+    reset();
+    window.location.reload();
+};
+    const handleShow = () => setShow(true);
+    const handleEdit = (colegio) => {
+        setEditingColegio(colegio);
+        setShow(true);
+    };
+    const OnSubmit = handleSubmit(async (data) => {
+        if (editingColegio) {
+            // Editar el colegio existente
+            const updatedColegio = {
+                ...editingColegio,
+                colegio_nombre: data.colegio_nombre,
+                colegio_direccion: data.colegio_direccion,
+                colegio_telefono: data.colegio_telefono,
+                colegio_contacto: data.colegio_contacto,
+                zona: data.zona,
+            };
+            updateColegio(editingColegio.colegio_id, updatedColegio);
+        } else {
+            // Crear un nuevo colegio
+            postColegio(data);
         }
-        obtenerDatos()
-    }, []
-    )
-    const [zonas, setZonas] = useState([])
-    useEffect(() => {
+        handleClose();
+        
+    });
 
-        async function obtenerZona() {
-            const res2 = await getZonas()
-            setZonas(res2.data)
-        }
-        obtenerZona()
-    }, [])
-    async function eliminarColegio(colegioId) {
-        await deleteColegio(colegioId);
-        //obtenerDatos();
-        window.location.reload(); // modificar para actualizar lo necesario 
-      }
-    
-    return (
-        <>
-            <div className='mt-5'>
-                
-                {colegios.map(colegio => (
-                    <div className="card mb-3" style={{ backgroundColor: 'rgba(169, 169, 169, 0.5)' }} key={colegio.colegio_id}>
-                        <div className="row g-0">
-                            <div className="col-md-4">
-                            <img src="https://st4.depositphotos.com/6633222/38972/v/450/depositphotos_389727522-stock-illustration-cartoon-illustration-of-school-building.jpg" className="img-fluid rounded-start" alt="..." style={{ width: '200px', height: '200px' }} />
-                            </div>
-                            <div className="col-md-4">
-                                <div className="card-body">
-                                    <h5 className="card-title">{colegio.colegio_nombre}</h5>
-                                    <p className="card-text">{colegio.colegio_direccion}</p>
-                                    <p className="card-text"><small className="text-body-secondary">{colegio.colegio_telefono}</small></p>
-                                    <p className="card-text"><small className="text-body-secondary">{colegio.colegio_contacto}</small></p>
-                                </div>
-                            </div>
-                            <div className="col-md-3">
-                                <div className="d-grid gap-2 col-6 mx-auto">
-                                    <br />
-                                    <button className="btn btn-warning" type="button">Editar</button>
-                                    <button className="btn btn-danger"type="button"onClick={() => eliminarColegio(colegio.colegio_id)}>Eliminar</button>
-                                </div>
-                            </div>
-                            <div class="form-floating">
+  async function eliminarColegio(colegioId) {
+    await deleteColegio(colegioId);
+    window.location.reload(); // Recargar la página para actualizar los datos
+  }
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [selectedColegio, setSelectedColegio] = useState(null);
+  const handleCloseConfirmDelete = () => setShowConfirmDelete(false);
+  const handleShowConfirmDelete = () => setShowConfirmDelete(true);
 
-                                <select class="form-select" id="floatingSelect" aria-label="Floating label select example">
-
-                                    <option selected>Zona</option>
-                                    {...zonas.map(zona => (
-                                        <option value={zona.id}>{zona.zona_nombre}</option>
-                                    ))}
-                                </select>
-                                <label for="floatingSelect">Works with selects</label>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </>
-    )
+  const handleDelete = (colegio) => {
+    setSelectedColegio(colegio)
+    handleShowConfirmDelete()
 }
-export default ListaColegios
+  const handleConfirmDelete = () => {
+    eliminarColegio(selectedColegio.colegio_id)
+    handleCloseConfirmDelete()
+}
+function ConfirmDelete({ show, handleClose, handleConfirmDelete }) {
+    return (
+        <Modal show={show} onHide={handleClose}>
+            <Modal.Header closeButton>
+                <Modal.Title>Confirmar Eliminación</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>¿Estás seguro de eliminar este registro?</Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={handleClose}>
+                    Cancelar
+                </Button>
+                <Button variant="danger" onClick={handleConfirmDelete}>
+                    Eliminar
+                </Button>
+            </Modal.Footer>
+        </Modal>
+    );
+}
+  // busquedad colegio 
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const filteredColegios = colegios.filter((colegio) => {
+    return colegio.colegio_nombre.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  return (
+    <>
+    
+        <Modal show={show} onHide={handleClose}>
+                <Modal.Header closeButton>
+                    <Modal.Title>{editingColegio ? 'Editar Colegio' : 'Registro de Colegio'}</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <form onSubmit={OnSubmit}>
+                        <div className="mb-3">
+                            <label className="form-label">Nombre del Colegio</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                defaultValue={editingColegio ? editingColegio.colegio_nombre : ''}
+                                {...register('colegio_nombre')}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label className="form-label">Dirección del Colegio</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                defaultValue={editingColegio ? editingColegio.colegio_direccion : ''}
+                                {...register('colegio_direccion')}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label className="form-label">Teléfono del Colegio</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                defaultValue={editingColegio ? editingColegio.colegio_telefono : ''}
+                                {...register('colegio_telefono')}
+                            />
+                        </div>
+                        <div className="mb-3">
+                            <label className="form-label">Contacto del Colegio</label>
+                            <input
+                                type="text"
+                                className="form-control"
+                                defaultValue={editingColegio ? editingColegio.colegio_contacto : ''}
+                                {...register('colegio_contacto')}
+                            />
+                        </div>
+                        <div className="form-floating">
+                            <select
+                                className="form-select"
+                                id="floatingSelect"
+                                aria-label="Floating label select example"
+                                defaultValue={editingColegio ? editingColegio.zona : ''}
+                                {...register('zona')}
+                            >
+                                <option selected>Seleccionar Zona</option>
+                                {zonas.map((zona) => (
+                                    <option key={zona.zona_id} value={zona.zona_id}>
+                                        {zona.zona_nombre}
+                                    </option>
+                                ))}
+                            </select>
+                            <label htmlFor="floatingSelect">Seleccionar Zona</label>
+                        </div>
+                    </form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleClose}>
+                        Cerrar
+                    </Button>
+                    <Button variant="primary" onClick={OnSubmit}>
+                        {editingColegio ? 'Guardar Cambios' : 'Guardar'}
+                    </Button>
+                </Modal.Footer>
+            </Modal>    
+      <div className='mt-5'>
+      <div className="mb-3 d-flex justify-content-center">
+          <div className="input-group">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar por colegio..."
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
+        </div><br/>
+
+    <section className="container" id="carta">
+      {filteredColegios.map((colegio) => (
+        <div className="container__card card-styles" id="concard" style={{ backgroundColor: 'rgba(169, 169, 169, 0.5)' }} key={colegio.colegio_id}>
+          <img
+            src="https://www.elesapiens.com/blog/wp-content/uploads/2017/11/New-Sandy-Hook-Elementary-School-1-Azure.jpg"
+            alt="img"
+            className="card__img"
+          />
+          <div className="subcontainer text-center" id="sub">
+            <p className="container__title">{colegio.colegio_nombre}</p>
+            <p className="container__subtitle">{colegio.colegio_direccion}</p>
+            <p className="container__description">{colegio.colegio_telefono} </p>
+            <p className="container__description">
+              {colegio.colegio_contacto}
+            </p>
+            <p className="container__description" id="des">
+              {zonas.find((zona) => zona.zona_id === colegio.zona)?.zona_nombre}
+            </p>
+              <button
+                className="btn btn-warning me-2" id="bu"
+                type="button"
+                onClick={() => handleEdit(colegio)}
+              >
+                Editar
+              </button>
+              <button
+                className="btn btn-danger" id="bu"
+                type="button"
+                onClick={() => handleDelete(colegio)}
+              >
+                Eliminar
+              </button>
+           
+          </div>
+        </div>
+      ))}
+      <CardStyles /> {/* Renderiza el componente CardStyles después de las tarjetas */}
+    </section>
+
+        
+      </div>
+      <ConfirmDelete
+                show={showConfirmDelete}
+                handleClose={handleCloseConfirmDelete}
+                handleConfirmDelete={handleConfirmDelete}
+            />
+    </>
+  );
+}
+
+export default ListaColegios;
+``

@@ -43,7 +43,6 @@ function ColegioForm() {
         <Button variant="success" onClick={handleShow}>
           AGREGAR COLEGIO
         </Button>
-
         <Modal show={show} onHide={handleClose}>
           <Modal.Header closeButton>
             <Modal.Title>Registro de colegio</Modal.Title>
