@@ -53,17 +53,12 @@ const CardStyles = () => (
       }
 
       #bu {
-        text-decoration: none;
-        
-        padding: 10px;
-        padding-left: 70px;
-        padding-right: 70px;
+        text-decoration: none; 
+        padding: 11px;
+        padding-left: 100px;
+        padding-right: 100px;
         font-weight: bold;
         border-radius: 2em;
-        background-color: #747675;
-        color: #fff;
-        cursor: pointer;
-        transition: 0.5s;
         margin-bottom: 14px;
       }
       .button:hover {
